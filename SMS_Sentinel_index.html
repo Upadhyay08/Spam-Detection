@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMS Sentinel — Spam Detection</title>
+<style>
+:root{
+  --bg:#050a12;--bg2:#091321;--card:rgba(15,27,43,.78);
+  --line:rgba(148,163,184,.16);--text:#f8fafc;--muted:#91a0b3;
+  --gold:#f5b91f;--green:#45d39a;--red:#ff6575;--blue:#62a9ff;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
+  background:
+    radial-gradient(circle at 10% 5%,rgba(245,185,31,.12),transparent 28%),
+    radial-gradient(circle at 92% 8%,rgba(98,169,255,.12),transparent 30%),
+    linear-gradient(135deg,#04080f,#07111e 48%,#050b14);
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+a{text-decoration:none;color:inherit}
+.nav{position:sticky;top:0;z-index:10;background:rgba(5,10,18,.72);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.nav-inner{max-width:1180px;margin:auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-weight:900;letter-spacing:.5px}.brand i{font-style:normal;color:var(--gold)}
+.navlinks{display:flex;gap:24px;color:var(--muted);font-size:14px}
+.navlinks a:hover{color:#fff}
+.container{max-width:1180px;margin:auto;padding:0 24px}
+.hero{min-height:690px;display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(245,185,31,.28);border-radius:999px;background:rgba(245,185,31,.07);color:#f9d875;font-size:13px;font-weight:800}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 16px var(--green)}
+h1{font-size:clamp(50px,7vw,86px);line-height:.94;letter-spacing:-4px;margin:24px 0 20px}
+h1 em{font-style:normal;color:var(--gold)}
+.hero-copy{font-size:18px;line-height:1.75;color:var(--muted);max-width:650px}
+.hero-actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.btn{padding:13px 18px;border-radius:13px;border:1px solid var(--line);font-weight:800;background:rgba(255,255,255,.03)}
+.btn.primary{background:var(--gold);color:#15110a;border-color:var(--gold)}
+.btn:hover{transform:translateY(-1px)}
+.demo{
+  padding:22px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,rgba(20,36,55,.88),rgba(8,17,29,.9));
+  box-shadow:0 35px 90px rgba(0,0,0,.35)
+}
+.demo-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.demo-head h3{margin:0;font-size:18px}.live{font-size:11px;color:#b9c7d7}
+textarea{width:100%;height:190px;resize:none;border:1px solid #29425e;border-radius:18px;background:#050d17;color:#fff;padding:18px;font:16px/1.6 inherit;outline:none}
+textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,185,31,.08)}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.chip{border:1px solid var(--line);background:#091624;color:#bdc8d5;border-radius:999px;padding:8px 11px;cursor:pointer;font-size:12px}
+.chip:hover{border-color:#45627f;color:#fff}
+.check{width:100%;border:0;border-radius:14px;padding:14px;background:var(--gold);color:#161107;font-weight:900;font-size:15px;cursor:pointer}
+.result{display:none;margin-top:14px;padding:17px;border:1px solid var(--line);border-radius:17px;background:#081421}
+.result.show{display:block}
+.result-title{font-size:20px;font-weight:900;margin-bottom:7px}.spam{color:var(--red)}.ham{color:var(--green)}
+.bar{height:8px;background:#172638;border-radius:99px;overflow:hidden;margin-top:12px}.fill{height:100%;background:var(--gold);border-radius:99px}
+.section{padding:100px 0;border-top:1px solid rgba(255,255,255,.05)}
+.kicker{color:var(--gold);font-size:12px;font-weight:900;letter-spacing:1.8px;text-transform:uppercase}
+h2{font-size:42px;letter-spacing:-1.5px;margin:10px 0}.section-desc{color:var(--muted);line-height:1.7;max-width:700px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+.card{padding:23px;border:1px solid var(--line);border-radius:20px;background:var(--card)}
+.card .num{font-size:34px;font-weight:900;color:var(--gold)}.card p{color:var(--muted);line-height:1.55;margin-bottom:0}
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:35px}
+.pipe{position:relative;padding:24px 20px;border-top:1px solid #29415b}
+.pipe:not(:last-child):after{content:"→";position:absolute;right:-8px;top:15px;color:#61748a;font-size:22px}
+.pipe b{display:block;margin-bottom:7px}.pipe span{color:var(--muted);font-size:14px;line-height:1.5}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+.metric-big{padding:30px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(145deg,#0d1e31,#08111d)}
+.metric-big strong{font-size:64px;color:var(--gold);letter-spacing:-3px}.metric-big p{color:var(--muted);margin:7px 0 0}
+.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.metric{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.metric b{font-size:28px}.metric span{display:block;color:var(--muted);font-size:13px;margin-top:5px}
+.matrix{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+.matrix-card{padding:25px;border:1px solid var(--line);border-radius:22px;background:var(--card)}
+.matrix table{width:100%;border-collapse:collapse;margin-top:15px}.matrix th,.matrix td{padding:12px;border:1px solid var(--line);text-align:center}.matrix th{color:var(--muted);font-size:12px}
+.note{padding:18px;border-left:3px solid var(--gold);background:rgba(245,185,31,.05);color:#c5cfda;line-height:1.65;margin-top:25px;border-radius:0 12px 12px 0}
+footer{padding:45px 0;text-align:center;color:#64748b;border-top:1px solid rgba(255,255,255,.05)}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:80px 0}.cards,.pipeline{grid-template-columns:1fr 1fr}.metrics,.matrix{grid-template-columns:1fr}}
+@media(max-width:600px){.navlinks{display:none}.container{padding:0 17px}h1{letter-spacing:-2.5px}.cards,.pipeline,.metric-grid{grid-template-columns:1fr}.pipe:not(:last-child):after{display:none}.section{padding:70px 0}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand">SMS <i>SENTINEL</i></div>
+    <div class="navlinks">
+      <a href="#demo">Demo</a><a href="#pipeline">Pipeline</a><a href="#metrics">Performance</a><a href="#explain">Explainability</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<section class="container hero" id="demo">
+  <div>
+    <div class="eyebrow"><span class="dot"></span> NLP · MACHINE LEARNING PROJECT</div>
+    <h1>Stop the <em>spam.</em><br>Keep the real.</h1>
+    <p class="hero-copy">
+      An end-to-end SMS classification project trained on the SMS Spam Collection.
+      The notebook contains <strong>5,572 messages</strong>, TF-IDF text features,
+      and a Logistic Regression classifier designed to separate ham from spam.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#pipeline">See the pipeline</a>
+      <a class="btn" href="#metrics">View model performance</a>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-head">
+      <h3>Message Lab</h3>
+      <span class="live">Notebook examples · static showcase</span>
+    </div>
+    <textarea id="msg" placeholder="Paste an SMS message..."></textarea>
+    <div class="examples">
+      <button class="chip" onclick="example('Congratulations! You won a free prize')">Free prize</button>
+      <button class="chip" onclick="example('Hey bro, call me when you get home')">Casual SMS</button>
+      <button class="chip" onclick="example('URGENT! You have won £1000! Call now to claim')">Urgent win</button>
+      <button class="chip" onclick="example('Can you send me the notes from yesterday?')">Notes</button>
+    </div>
+    <button class="check" onclick="showResult()">Inspect message</button>
+    <div id="result" class="result"></div>
+  </div>
+</section>
+
+<section class="section" id="pipeline">
+<div class="container">
+  <div class="kicker">The workflow</div>
+  <h2>From raw SMS to prediction.</h2>
+  <p class="section-desc">The project starts with labelled SMS text, separates message and label columns, creates a stratified train/test split, converts text to TF-IDF features, and fits Logistic Regression.</p>
+  <div class="pipeline">
+    <div class="pipe"><b>01 · Dataset</b><span>5,572 messages<br>4,825 ham · 747 spam</span></div>
+    <div class="pipe"><b>02 · Split</b><span>80/20 stratified split<br>4,457 train · 1,115 test</span></div>
+    <div class="pipe"><b>03 · TF-IDF</b><span>7,668 learned text features</span></div>
+    <div class="pipe"><b>04 · Classifier</b><span>Logistic Regression → ham / spam</span></div>
+  </div>
+</div>
+</section>
+
+<section class="section">
+<div class="container">
+  <div class="kicker">Dataset</div>
+  <h2>What the model learned from.</h2>
+  <div class="cards">
+    <div class="card"><div class="num">5,572</div><p>Total SMS messages in the dataset.</p></div>
+    <div class="card"><div class="num">4,825</div><p>Messages labelled ham.</p></div>
+    <div class="card"><div class="num">747</div><p>Messages labelled spam.</p></div>
+    <div class="card"><div class="num">7,668</div><p>TF-IDF feature dimensions after fitting.</p></div>
+  </div>
+</div>
+</section>
+
+<section class="section" id="metrics">
+<div class="container">
+  <div class="kicker">Evaluation</div>
+  <h2>Performance, not vibes.</h2>
+  <p class="section-desc">These numbers are taken directly from the supplied notebook's held-out test set.</p>
+  <div class="metrics">
+    <div class="metric-big"><strong>97.31%</strong><p>Test accuracy · 1,115 test messages</p></div>
+    <div class="metric-grid">
+      <div class="metric"><b>100%</b><span>Spam precision</span></div>
+      <div class="metric"><b>79.87%</b><span>Spam recall</span></div>
+      <div class="metric"><b>88.81%</b><span>Spam F1-score</span></div>
+      <div class="metric"><b>97.0%</b><span>Weighted F1</span></div>
+    </div>
+  </div>
+  <div class="matrix">
+    <div class="matrix-card">
+      <h3>Confusion matrix</h3>
+      <table>
+        <tr><th></th><th>Pred. Ham</th><th>Pred. Spam</th></tr>
+        <tr><th>Actual Ham</th><td>966</td><td>0</td></tr>
+        <tr><th>Actual Spam</th><td>30</td><td>119</td></tr>
+      </table>
+    </div>
+    <div class="matrix-card">
+      <h3>What it means</h3>
+      <p style="color:#9aa9bb;line-height:1.7">On this test split, every message predicted as spam was actually spam, giving 100% spam precision. The model caught 119 of 149 actual spam messages, giving 79.87% spam recall.</p>
+      <div class="note">The notebook also examines incorrect predictions and individual TF-IDF feature contributions to understand why the Logistic Regression model moves toward spam or ham.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="section" id="explain">
+<div class="container">
+  <div class="kicker">Explainability</div>
+  <h2>It doesn't just say “spam”.</h2>
+  <p class="section-desc">The notebook goes one level deeper: it transforms a message with TF-IDF, reads the Logistic Regression weights, calculates feature contributions, and inspects the decision score.</p>
+  <div class="cards">
+    <div class="card"><div class="num">TF-IDF</div><p>Words are converted into weighted numerical features based on their importance in the SMS corpus.</p></div>
+    <div class="card"><div class="num">Weight</div><p>Logistic Regression assigns learned positive or negative weights to vocabulary features.</p></div>
+    <div class="card"><div class="num">Contribution</div><p>TF-IDF value × model weight shows how individual words push the decision.</p></div>
+    <div class="card"><div class="num">Score</div><p>The decision function provides the model's raw classification score before probability conversion.</p></div>
+  </div>
+</div>
+</section>
+
+<section class="section">
+<div class="container">
+  <div class="kicker">Notebook examples</div>
+  <h2>Real examples from the project.</h2>
+  <div class="cards">
+    <div class="card"><div class="num spam">SPAM</div><p>“Congratulations! You won a free prize”<br><br><strong>Spam 71.05%</strong> · Ham 28.95%</p></div>
+    <div class="card"><div class="num ham">HAM</div><p>“Hey bro, call me when you get home”<br><br>Spam 2.93% · <strong>Ham 97.07%</strong></p></div>
+    <div class="card"><div class="num spam">SPAM</div><p>“URGENT! You have won £1000! Call now to claim”<br><br><strong>Spam 95.26%</strong> · Ham 4.74%</p></div>
+    <div class="card"><div class="num ham">HAM</div><p>“Can you send me the notes from yesterday?”<br><br>Spam 6.26% · <strong>Ham 93.74%</strong></p></div>
+  </div>
+</div>
+</section>
+</main>
+
+<footer>
+  <div class="container">SMS SENTINEL · TF-IDF + LOGISTIC REGRESSION · NLP PROJECT</div>
+</footer>
+
+<script>
+const data={
+"Congratulations! You won a free prize":{label:"Likely SPAM",spam:71.04672273254319,ham:28.95327726745681},
+"Hey bro, call me when you get home":{label:"Likely HAM",spam:2.928752273578671,ham:97.07124772642133},
+"URGENT! You have won £1000! Call now to claim":{label:"Likely SPAM",spam:95.2589571444445,ham:4.74104285555554},
+"Can you send me the notes from yesterday?":{label:"Likely HAM",spam:6.262791433099746,ham:93.73720856690026}
+};
+function example(t){document.getElementById("msg").value=t}
+function showResult(){
+  const text=document.getElementById("msg").value.trim();
+  const r=document.getElementById("result");
+  const x=data[text];
+  r.className="result show";
+  if(!x){
+    r.innerHTML="<strong>Showcase mode</strong><br><span style='color:#91a0b3'>Choose one of the notebook examples above to see the exact prediction recorded in the project.</span>";
+    return;
+  }
+  const spam=x.label.includes("SPAM");
+  r.innerHTML=`<div class="result-title ${spam?"spam":"ham"}">${x.label}</div>
+  <div style="color:#91a0b3">Spam ${x.spam.toFixed(2)}% · Ham ${x.ham.toFixed(2)}%</div>
+  <div class="bar"><div class="fill" style="width:${x.spam}%"></div></div>`;
+}
+</script>
+</body>
+</html>
